@@ -1,6 +1,7 @@
 #include "./include/uapi/seat.h"
 
 #include <nd/nd.h>
+#include <nd/verb.h>
 #include <nd/fight.h>
 
 typedef struct {
@@ -10,7 +11,8 @@ typedef struct {
 
 typedef unsigned sitter_t;
 
-unsigned type_seat, sitter_hd;
+unsigned type_seat, sitter_hd, seat_hd;
+unsigned wt_sit, wt_stand;
 
 SIC_DEF(unsigned, sitting, unsigned, ref);
 
@@ -29,7 +31,7 @@ sit(unsigned player_ref, sitter_t *sitter, char *name)
 	}
 
 	if (!*name) {
-		notify_wts(player_ref, "sit", "sits", " on the ground");
+		call_verb(player_ref, wt_sit, " on the ground.");
 		*sitter = NOTHING;
 		return;
 	}
@@ -57,7 +59,10 @@ sit(unsigned player_ref, sitter_t *sitter, char *name)
 
 	sseat->quantity += 1;
 	*sitter = seat_ref;
-	notify_wts(player_ref, "sit", "sits", " on %s", seat.name);
+
+	char buf[BUFSIZ];
+	snprintf(buf, sizeof(buf), " on %s", seat.name);
+	call_verb(player_ref, wt_sit, buf);
 }
 
 int
@@ -67,15 +72,14 @@ stand_silent(unsigned player_ref, sitter_t *sitter)
 		return 1;
 
 	if (*sitter != NOTHING) {
-		OBJ chair;
-		nd_get(HD_OBJ, &chair, sitter);
-		seat_t *schair = (seat_t *) &chair.data;
-		schair->quantity--;
-		nd_put(HD_OBJ, sitter, &chair);
+		seat_t seat;
+		nd_get(seat_hd, &seat, sitter);
+		seat.quantity--;
+		nd_put(seat_hd, sitter, &seat);
 		*sitter = NOTHING;
 	}
 
-	notify_wts(player_ref, "stand", "stands", " up");
+	call_verb(player_ref, wt_stand, " up");
 	return 0;
 }
 
@@ -157,14 +161,22 @@ int on_add(unsigned ref, unsigned type, uint64_t v __attribute__((unused))) {
 }
 
 void mod_open(void) {
-	sitter_hd = nd_open("sitter", "u", "u", 0);
-
-	type_seat = nd_put(HD_TYPE, NULL, "seat");
+	nd_get(HD_RWTS, &wt_sit, "sit");
+	nd_get(HD_RWTS, &wt_stand, "stand");
 
 	nd_register("sit", do_sit, 0);
 	nd_register("stand", do_stand, 0);
+
+	nd_len_reg("seat", sizeof(seat_t));
+	sitter_hd = nd_open("sitter", "u", "u", 0);
+	seat_hd = nd_open("seat", "u", "seat", 0);
 }
 
 void mod_install(void) {
+	nd_put(HD_WTS, NULL, "sit");
+	nd_get(HD_WTS, NULL, "stand");
+
 	mod_open();
+
+	type_seat = nd_put(HD_TYPE, NULL, "seat");
 }
