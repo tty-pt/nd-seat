@@ -31,7 +31,7 @@ sit(unsigned player_ref, sitter_t *sitter, char *name)
 	}
 
 	if (!*name) {
-		call_verb(player_ref, wt_sit, "on the ground.");
+		call_verb(player_ref, wt_sit, " on the ground.");
 		*sitter = NOTHING;
 		return;
 	}
