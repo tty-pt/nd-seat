@@ -1,0 +1,1 @@
+CFLAGS-libnd-seat-o := -fPIC
