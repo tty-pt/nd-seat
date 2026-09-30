@@ -1,0 +1,2 @@
+PROJECT_NAME           = "nd-seat"
+@INCLUDE = ../mk/Doxyfile
