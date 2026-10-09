@@ -26,14 +26,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define SEAT_IMPL
-#include <nd/seat.h>
-
-/* hit_t comes from nd-fight's header. Seat co-implements on_will_attack, so
- * the FIGHT_IMPL guard suppresses that XY_DECL; nothing else from fight.h is
- * called here. */
-#define FIGHT_IMPL
-#include <nd/fight.h>
+#include <nd/seat-types.h>
+#include <nd/fight-types.h>
 
 typedef struct {
 	unsigned quantity;
