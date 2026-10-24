@@ -1,4 +1,12 @@
-## 1.0.2
+## [1.0.3]
+
+- **Two-Header Architecture (`<nd/seat-types.h>`)**:
+  - Extracted public types header `<nd/seat-types.h>` defining furniture states.
+  - Removed `SEAT_IMPL` preprocessor guards.
+- **Documentation**:
+  - Standardized README with man-src, art, and modder guide.
+
+## [1.0.2]
 
 - **The sibling `-I` lines are gone.** `CFLAGS += -I$(shell cd .. && pwd)/…`
   pointed at the axil-nd/nd sibling checkouts and only existed for a dev

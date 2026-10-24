@@ -56,6 +56,13 @@ same command works either way. CI names the deps explicitly
   up; `on_will_attack` stands the target up silently and returns the hit
   unchanged; `on_examine` reports the seat; `on_add` initializes rows.
 
+## In-Game Commands (`man-src/`)
+
+| Command | Section | Description |
+|---------|---------|-------------|
+| `sit` | 10 | Take a seat on furniture or resting spot to regenerate resources |
+| `stand` | 10 | Rise from a seated position to resume walking or combat |
+
 ## Testing
 
 There is no `test.sh` here. Behaviour is asserted by the engine's own suite:
