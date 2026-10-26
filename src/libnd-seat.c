@@ -26,14 +26,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define SEAT_IMPL
-#include <nd/seat.h>
-
-/* hit_t comes from nd-fight's header. Seat co-implements on_will_attack, so
- * the FIGHT_IMPL guard suppresses that XY_DECL; nothing else from fight.h is
- * called here. */
-#define FIGHT_IMPL
-#include <nd/fight.h>
+#include <nd/seat-types.h>
+#include <nd/fight-types.h>
 
 typedef struct {
 	unsigned quantity;
@@ -53,24 +47,25 @@ static unsigned wt_sit, wt_stand;
 
 XY_IMPL(unsigned, sitting, unsigned, ref)
 {
-	sitter_t sitter;
+	sitter_t sitter = STANDING;
 	nd_get(sitter_hd, &sitter, &ref);
 	return sitter;
 }
 
 /* A sit/stand announcement. The old code called call_verb(player, wt, msg),
- * but verb never existed. "<Name><msg>" goes to the room, "You<msg>" to the
- * sitter. */
+ * but verb never existed. The sitter reads the second-person form
+ * ("You stand up."), the room the third-person form ("<Name> stands up.") --
+ * the verbs differ ("stand"/"stands"), so the two texts are passed apart. */
 static void
-say_seat(unsigned player_ref, char *msg)
+say_seat(unsigned player_ref, const char *you, const char *they)
 {
 	OBJ player;
 	char buf[BUFSIZ];
 	int len;
 
 	nd_get(HD_OBJ, &player, &player_ref);
-	nd_printf(player_ref, "You%s\n", msg);
-	len = snprintf(buf, sizeof(buf), "%s%s\n", player.name, msg);
+	nd_printf(player_ref, "You %s\n", you);
+	len = snprintf(buf, sizeof(buf), "%s %s\n", player.name, they);
 	nd_rwrite(player.location, player_ref, buf, (size_t)len);
 }
 
@@ -82,8 +77,8 @@ sit(unsigned player_ref, sitter_t *sitter, char *name)
 		return;
 	}
 
-	if (!*name) {
-		say_seat(player_ref, " sits on the ground.");
+	if (!name || !*name) {
+		say_seat(player_ref, "sit on the ground.", "sits on the ground.");
 		*sitter = NOTHING;
 		return;
 	}
@@ -112,9 +107,10 @@ sit(unsigned player_ref, sitter_t *sitter, char *name)
 	sseat->quantity += 1;
 	*sitter = seat_ref;
 
-	char buf[BUFSIZ];
-	snprintf(buf, sizeof(buf), " sits on %s", seat.name);
-	say_seat(player_ref, buf);
+	char you[BUFSIZ], they[BUFSIZ];
+	snprintf(you, sizeof(you), "sit on %s.", seat.name);
+	snprintf(they, sizeof(they), "sits on %s.", seat.name);
+	say_seat(player_ref, you, they);
 }
 
 static int
@@ -131,7 +127,8 @@ stand_silent(unsigned player_ref, sitter_t *sitter)
 		*sitter = NOTHING;
 	}
 
-	say_seat(player_ref, " stands up");
+	*sitter = STANDING;
+	say_seat(player_ref, "stand up.", "stands up.");
 	return 0;
 }
 
@@ -145,18 +142,18 @@ static void
 do_sit(int fd, int argc __attribute__((unused)), char *argv[])
 {
 	unsigned player_ref = fd_player(fd);
-	sitter_t sitter;
+	sitter_t sitter = STANDING;
 
 	nd_get(sitter_hd, &sitter, &player_ref);
         sit(player_ref, &sitter, argv[1]);
-	nd_get(sitter_hd, &player_ref, &sitter);
+	nd_put(sitter_hd, &player_ref, &sitter);
 }
 
 static void
 do_stand(int fd, int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
 	unsigned player_ref = fd_player(fd);
-	sitter_t sitter;
+	sitter_t sitter = STANDING;
 	nd_get(sitter_hd, &sitter, &player_ref);
 
         stand(player_ref, &sitter);
@@ -166,7 +163,7 @@ do_stand(int fd, int argc __attribute__((unused)), char *argv[] __attribute__((u
 
 XY_IMPL(int, on_before_leave, unsigned, player_ref)
 {
-	sitter_t sitter;
+	sitter_t sitter = STANDING;
 	nd_get(sitter_hd, &sitter, &player_ref);
 
 	if (sitter == STANDING)
@@ -182,7 +179,7 @@ XY_IMPL(int, on_before_leave, unsigned, player_ref)
  * hit through unchanged. nd_last() gives us fight's (or spell's) hit. */
 XY_IMPL(hit_t, on_will_attack, unsigned, player_ref, double, dt)
 {
-	sitter_t sitter;
+	sitter_t sitter = STANDING;
 	hit_t hit;
 
 	(void) dt;
